@@ -3,16 +3,17 @@ package controllers
 import (
 	"time"
 	"weather-backend/config"
-	"weather-backend/helpers" // Panggil helper yang sudah dibuat
+	"weather-backend/helpers"
 	"weather-backend/middlewares"
 	"weather-backend/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type LoginInput struct {
-	Username string `json:"username" binding:"required"`
+	Username string `json:"username" binding:"required"` // Bisa diisi username atau email
 	Password string `json:"password" binding:"required"`
 }
 
@@ -24,8 +25,18 @@ func Login(c *gin.Context) {
 	}
 
 	var user models.User
-	result := config.DB.Preload("Roles").Where("username = ?", input.Username).First(&user)
-	if result.Error != nil || user.Password != input.Password {
+	// Mendukung pencarian berdasarkan username ATAU email
+	result := config.DB.Preload("Roles").Where("username = ? OR email = ?", input.Username, input.Username).First(&user)
+	
+	// Cek apakah user ditemukan di database
+	if result.Error != nil {
+		helpers.ResponseUnauthorized(c, gin.H{"error": "Username atau password salah!"})
+		return
+	}
+
+	// Cek kecocokan password dengan hash bcrypt
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password))
+	if err != nil {
 		helpers.ResponseUnauthorized(c, gin.H{"error": "Username atau password salah!"})
 		return
 	}
