@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"os"
 	"strings"
 	"weather-backend/config"
 	"weather-backend/models"
@@ -10,7 +11,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var JwtKey = []byte("rahasia_proyek_cuaca_batam_123")
+// Mengambil kunci rahasia JWT secara dinamis dari file .env
+var JwtKey = []byte(getJwtSecret())
+
+func getJwtSecret() string {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "default-fallback-secret" // Cadangan jika .env tidak terbaca
+	}
+	return secret
+}
 
 // 1. Middleware untuk verifikasi token JWT (Autentikasi)
 func AuthMiddleware() gin.HandlerFunc {
@@ -57,7 +67,6 @@ func RequirePermission(requiredPermission string) gin.HandlerFunc {
 		}
 
 		var user models.User
-		// Menggunakan Preload dengan penentuan relasi yang aman sesuai tabel pivot SQL manual
 		err := config.DB.Preload("Roles").Preload("Roles.Permissions").Where("username = ?", username).First(&user).Error
 		if err != nil {
 			c.JSON(http.StatusForbidden, gin.H{"error": "User tidak ditemukan di database"})

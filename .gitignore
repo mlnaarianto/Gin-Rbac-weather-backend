@@ -1,0 +1,16 @@
+# Environment variables file
+.env
+
+# Binary / Executable output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+app
+
+# Go workspace files
+go.work
+
+# Dependencies directory (opsional, tapi biasanya vendor di-ignore)
+vendor/

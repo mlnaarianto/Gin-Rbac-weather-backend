@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"net/http"
 	"time"
 	"weather-backend/config"
+	"weather-backend/helpers" // Panggil helper yang sudah dibuat
 	"weather-backend/middlewares"
 	"weather-backend/models"
 
@@ -19,19 +19,14 @@ type LoginInput struct {
 func Login(c *gin.Context) {
 	var input LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		helpers.ResponseBadRequest(c, gin.H{"error": err.Error()})
 		return
 	}
 
 	var user models.User
 	result := config.DB.Preload("Roles").Where("username = ?", input.Username).First(&user)
-	if result.Error != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Username atau password salah!"})
-		return
-	}
-
-	if user.Password != input.Password {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Username atau password salah!"})
+	if result.Error != nil || user.Password != input.Password {
+		helpers.ResponseUnauthorized(c, gin.H{"error": "Username atau password salah!"})
 		return
 	}
 
@@ -50,11 +45,12 @@ func Login(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(middlewares.JwtKey)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token"})
+		helpers.ResponseInternalError(c, gin.H{"error": "Gagal membuat token"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	// Respons sukses menggunakan helper
+	helpers.ResponseOK(c, gin.H{
 		"message": "Login berhasil!",
 		"token":   tokenString,
 		"role":    roleName,

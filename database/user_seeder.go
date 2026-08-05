@@ -7,32 +7,55 @@ import (
 )
 
 func SeedUsers() {
+	// 1. Cek atau buat user superadmin
 	var adminUser models.User
 	if err := config.DB.Where("username = ?", "superadmin").First(&adminUser).Error; err != nil {
 		adminUser = models.User{
 			Username: "superadmin",
 			Password: "123",
 		}
-		config.DB.Create(&adminUser)
+		if errCreate := config.DB.Create(&adminUser).Error; errCreate != nil {
+			fmt.Println("Gagal membuat user superadmin:", errCreate)
+			return
+		}
 	}
 
+	// 2. Cek atau buat user warga_batam
 	var regularUser models.User
 	if err := config.DB.Where("username = ?", "warga_batam").First(&regularUser).Error; err != nil {
 		regularUser = models.User{
 			Username: "warga_batam",
 			Password: "123",
 		}
-		config.DB.Create(&regularUser)
+		if errCreate := config.DB.Create(&regularUser).Error; errCreate != nil {
+			fmt.Println("Gagal membuat user warga_batam:", errCreate)
+			return
+		}
 	}
 
-	// Ambil role untuk dihubungkan ke user
-	var adminRole, userRole models.Role
-	config.DB.Where("name = ?", "admin").First(&adminRole)
-	config.DB.Where("name = ?", "user").First(&userRole)
+	// 3. Ambil role admin & user dengan validasi error yang aman
+	var adminRole models.Role
+	if err := config.DB.Where("name = ?", "admin").First(&adminRole).Error; err != nil {
+		fmt.Println("Gagal menemukan role admin:", err)
+		return
+	}
 
-	// Hubungkan relasi user_roles (tabel pivot)
-	config.DB.Model(&adminUser).Association("Roles").Append(&adminRole)
-	config.DB.Model(&regularUser).Association("Roles").Append(&userRole)
+	var userRole models.Role
+	if err := config.DB.Where("name = ?", "user").First(&userRole).Error; err != nil {
+		fmt.Println("Gagal menemukan role user:", err)
+		return
+	}
+
+	// 4. Hubungkan relasi user_roles (tabel pivot) menggunakan .Replace()
+	if err := config.DB.Model(&adminUser).Association("Roles").Replace(&adminRole); err != nil {
+		fmt.Println("Gagal menghubungkan role admin ke superadmin:", err)
+		return
+	}
+
+	if err := config.DB.Model(&regularUser).Association("Roles").Replace(&userRole); err != nil {
+		fmt.Println("Gagal menghubungkan role user ke warga_batam:", err)
+		return
+	}
 
 	fmt.Println("Seeder Users & User_Roles berhasil dijalankan!")
 }
