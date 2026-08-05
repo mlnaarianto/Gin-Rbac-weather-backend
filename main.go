@@ -1,11 +1,10 @@
 package main
 
 import (
-	"net/http"
 	"weather-backend/config"
-	"weather-backend/controllers"
 	"weather-backend/database"
 	"weather-backend/middlewares"
+	"weather-backend/routes"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,44 +13,17 @@ func main() {
 	// 1. Koneksi Database
 	config.ConnectDB()
 
-	// 2. Jalankan Seeder Otomatis (Roles, Permissions, & Users)
-	database.SeedRoles()
-	database.SeedPermissions()
-	database.SeedUsers()
+	// 2. Jalankan Seluruh Seeder Secara Terpusat
+	database.RunAllSeeders()
 
 	r := gin.Default()
 
-	// Rute Publik
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong! Weather API Batam is running smoothly."})
-	})
-	r.POST("/login", controllers.Login)
+	// 3. Gunakan Middleware CORS
+	r.Use(middlewares.CORSMiddleware())
 
-	// Rute Terproteksi dengan Middleware Autentikasi & Permission RBAC
-	protected := r.Group("/api")
-	protected.Use(middlewares.AuthMiddleware())
-	{
-		protected.GET("/dashboard", func(c *gin.Context) {
-			username, _ := c.Get("username")
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Selamat datang, " + username.(string) + "!",
-			})
-		})
-	}
+	// 4. Daftarkan Rute API
+	routes.SetupRouter(r)
 
-	// Rute Khusus Admin dengan Permission "manage-sensors"
-	adminRoutes := r.Group("/api/admin")
-	adminRoutes.Use(middlewares.AuthMiddleware(), middlewares.RequirePermission("manage-sensors"))
-	{
-		adminRoutes.GET("/dashboard-stats", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"message":              "Selamat datang di Panel Kontrol Admin BMKG Batam!",
-				"status_server_ai":     "Aktif & Normal",
-				"total_stasiun_sensor": 5,
-			})
-		})
-	}
-
-	// Jalankan Server
+	// 5. Jalankan Server
 	r.Run(":8080")
 }
