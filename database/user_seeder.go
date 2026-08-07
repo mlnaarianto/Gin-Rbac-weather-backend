@@ -26,7 +26,8 @@ func SeedUsers() {
 	if err := config.DB.Where("username = ?", "superadmin").First(&adminUser).Error; err != nil {
 		adminUser = models.User{
 			Username: "superadmin",
-			Email:    "superadmin@weather.com", // Ditambahkan email
+			Name:     "Super Admin BMKG",
+			Email:    "superadmin@gmail.com",
 			Password: hashedPassword,
 		}
 		if errCreate := config.DB.Create(&adminUser).Error; errCreate != nil {
@@ -40,7 +41,8 @@ func SeedUsers() {
 	if err := config.DB.Where("username = ?", "warga_batam").First(&regularUser).Error; err != nil {
 		regularUser = models.User{
 			Username: "warga_batam",
-			Email:    "warga@batam.com", // Ditambahkan email
+			Name:     "Warga Kota Batam",
+			Email:    "warga.batam@gmail.com",
 			Password: hashedPassword,
 		}
 		if errCreate := config.DB.Create(&regularUser).Error; errCreate != nil {

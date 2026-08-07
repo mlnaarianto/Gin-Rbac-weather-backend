@@ -29,7 +29,7 @@ func Login(c *gin.Context) {
 	var user models.User
 	// 1. Pastikan Preload("Roles") terpanggil dengan benar saat mencari user
 	result := config.DB.Preload("Roles").Where("username = ? OR email = ?", input.Username, input.Username).First(&user)
-	
+
 	if result.Error != nil {
 		config.Log.Warn("Login gagal: Username atau email tidak ditemukan", zap.String("input_username", input.Username))
 		helpers.ResponseUnauthorized(c, gin.H{"error": "Username atau password salah!"})
@@ -76,8 +76,10 @@ func Login(c *gin.Context) {
 
 	// Respons sukses
 	helpers.ResponseOK(c, gin.H{
-		"message": "Login berhasil!",
-		"token":   tokenString,
-		"role":    roleName,
+		"message":  "Login berhasil!",
+		"token":    tokenString,
+		"username": user.Username,
+		"name":     user.Name,
+		"role":     roleName,
 	})
 }
