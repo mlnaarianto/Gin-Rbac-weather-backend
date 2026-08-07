@@ -38,5 +38,31 @@ func SetupRouter(r *gin.Engine) {
 				"total_stasiun_sensor": 5,
 			})
 		})
+
+		// ---> RUTE RBAC (read-only, boleh tetap ikut manage-sensors atau nanti dipisah juga) <---
+		adminRoutes.GET("/rbac", controllers.GetRBACData)
+	}
+
+	// ---> RUTE UPDATE ROLE USER - permission "manage-user-roles" <---
+	userRoleRoutes := r.Group("/api/admin/users")
+	userRoleRoutes.Use(middlewares.AuthMiddleware(), middlewares.RequirePermission("manage-user-roles"))
+	{
+		userRoleRoutes.PUT("/:id/roles", controllers.UpdateUserRoles)
+	}
+
+	// ---> RUTE MANAJEMEN ROLE (CRUD role) - permission "manage-roles" <---
+	roleRoutes := r.Group("/api/admin/roles")
+	roleRoutes.Use(middlewares.AuthMiddleware(), middlewares.RequirePermission("manage-roles"))
+	{
+		roleRoutes.POST("", controllers.CreateRole)
+		roleRoutes.PUT("/:id", controllers.UpdateRole)
+		roleRoutes.DELETE("/:id", controllers.DeleteRole)
+	}
+
+	// ---> RUTE MANAJEMEN PERMISSION ROLE (assign permission ke role) - permission "manage-role-permissions" <---
+	rolePermRoutes := r.Group("/api/admin/roles")
+	rolePermRoutes.Use(middlewares.AuthMiddleware(), middlewares.RequirePermission("manage-role-permissions"))
+	{
+		rolePermRoutes.PUT("/:id/permissions", controllers.UpdateRolePermissions)
 	}
 }

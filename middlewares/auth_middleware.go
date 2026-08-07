@@ -11,18 +11,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Mengambil kunci rahasia JWT secara dinamis dari file .env
 var JwtKey = []byte(getJwtSecret())
 
 func getJwtSecret() string {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		return "default-fallback-secret" // Cadangan jika .env tidak terbaca
+		return "super-secret-key-weather-app-2026"
 	}
 	return secret
 }
 
-// 1. Middleware untuk verifikasi token JWT (Autentikasi)
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -50,13 +48,11 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Simpan username ke context
 		c.Set("username", claims["username"])
 		c.Next()
 	}
 }
 
-// 2. Middleware RBAC Berbasis Permission yang Lebih Aman
 func RequirePermission(requiredPermission string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		username, exists := c.Get("username")
@@ -74,7 +70,19 @@ func RequirePermission(requiredPermission string) gin.HandlerFunc {
 			return
 		}
 
-		// Periksa apakah user memiliki permission yang dimaksud
+		isAdmin := false
+		for _, role := range user.Roles {
+			if role.Name == "admin" {
+				isAdmin = true
+				break
+			}
+		}
+
+		if isAdmin {
+			c.Next()
+			return
+		}
+
 		hasPermission := false
 		for _, role := range user.Roles {
 			for _, perm := range role.Permissions {
@@ -89,7 +97,7 @@ func RequirePermission(requiredPermission string) gin.HandlerFunc {
 		}
 
 		if !hasPermission {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Akses ditolak! Anda tidak memiliki izin (permission) tersebut."})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Akses ditolak! Anda tidak memiliki izin."})
 			c.Abort()
 			return
 		}
